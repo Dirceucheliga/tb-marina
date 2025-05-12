@@ -11,36 +11,29 @@ import java.util.Map;
 import java.util.Scanner;
 
 public class MorseCodeApp extends Application {
-    // Árvore de busca binária para código Morse
+    // Nó da árvore de busca binária
     static class Node {
         char letter;
         Node left, right;
-        Node(char letter) {
-            this.letter = letter;
-        }
+        Node(char letter) { this.letter = letter; }
     }
 
     static class MorseBST {
         private Node root;
-
-        // Mapeamento direto para acelerar decodificação
         private Map<String, Character> decodeMap = new HashMap<>();
+        private Map<Character, String> encodeMap = new HashMap<>();
 
-        // Insere uma letra seguindo pontos (.) à esquerda e traços (-) à direita
+        // Insere letra na árvore e registra nos mapas de encode/decode
         public void insert(char letter, String morseCode) {
-            // Prepara mapa de decodificação
             decodeMap.put(morseCode, letter);
-
-            if (root == null) {
-                root = new Node(' ');
-            }
+            encodeMap.put(letter, morseCode);
+            if (root == null) root = new Node(' ');
             Node current = root;
-            for (int i = 0; i < morseCode.length(); i++) {
-                char symbol = morseCode.charAt(i);
+            for (char symbol : morseCode.toCharArray()) {
                 if (symbol == '.') {
                     if (current.left == null) current.left = new Node(' ');
                     current = current.left;
-                } else if (symbol == '-') {
+                } else { // traço '-'
                     if (current.right == null) current.right = new Node(' ');
                     current = current.right;
                 }
@@ -48,7 +41,7 @@ public class MorseCodeApp extends Application {
             current.letter = letter;
         }
 
-        // Decodifica uma sequência de código Morse (letras separadas por espaço)
+        // Decodifica Morse para texto
         public String decode(String input) {
             StringBuilder result = new StringBuilder();
             for (String token : input.trim().split(" ")) {
@@ -58,51 +51,59 @@ public class MorseCodeApp extends Application {
             return result.toString();
         }
 
-        // Altura da árvore (níveis)
-        public int getHeight() {
-            return getHeight(root);
+        // Codifica texto para Morse
+        public String encode(String input) {
+            StringBuilder result = new StringBuilder();
+            for (char c : input.toUpperCase().toCharArray()) {
+                if (c == ' ') {
+                    result.append("  "); // duas quebras para separar palavras
+                } else {
+                    String code = encodeMap.get(c);
+                    result.append(code != null ? code : "?");
+                    result.append(' ');
+                }
+            }
+            return result.toString().trim();
         }
+
+        // Altura da árvore para dimensionar o canvas
+        public int getHeight() { return getHeight(root); }
         private int getHeight(Node node) {
             if (node == null) return 0;
             return 1 + Math.max(getHeight(node.left), getHeight(node.right));
         }
 
-        // Desenha a árvore em um Canvas JavaFX
+        // Renderiza a árvore JavaFX
         public void drawTree(Canvas canvas) {
             GraphicsContext gc = canvas.getGraphicsContext2D();
             gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
             gc.setStroke(Color.BLACK);
             gc.setLineWidth(2);
-            drawNode(gc, root, canvas.getWidth() / 2, 40, canvas.getWidth() / 4);
+            drawNode(gc, root, canvas.getWidth()/2, 40, canvas.getWidth()/4);
         }
 
-        private void drawNode(GraphicsContext gc, Node node,
-                              double x, double y, double xOffset) {
+        private void drawNode(GraphicsContext gc, Node node, double x, double y, double offset) {
             if (node == null) return;
-            // Nó
-            gc.strokeOval(x - 15, y - 15, 30, 30);
-            gc.strokeText(node.letter == ' ' ? "" : String.valueOf(node.letter), x - 5, y + 5);
-            // Filho esquerdo
+            gc.strokeOval(x-15, y-15, 30, 30);
+            gc.strokeText(node.letter==' '?"":String.valueOf(node.letter), x-5, y+5);
             if (node.left != null) {
-                double nx = x - xOffset, ny = y + 100;
-                gc.strokeLine(x, y + 15, nx, ny - 15);
-                drawNode(gc, node.left, nx, ny, xOffset / 2);
+                double nx = x - offset, ny = y + 100;
+                gc.strokeLine(x, y+15, nx, ny-15);
+                drawNode(gc, node.left, nx, ny, offset/2);
             }
-            // Filho direito
             if (node.right != null) {
-                double nx = x + xOffset, ny = y + 100;
-                gc.strokeLine(x, y + 15, nx, ny - 15);
-                drawNode(gc, node.right, nx, ny, xOffset / 2);
+                double nx = x + offset, ny = y + 100;
+                gc.strokeLine(x, y+15, nx, ny-15);
+                drawNode(gc, node.right, nx, ny, offset/2);
             }
         }
     }
 
-    // Instância compartilhada da árvore
     private static MorseBST morseTree = new MorseBST();
 
-    // Mapeia alfabeto e números básicos
+    // Popula mapas e árvore
     private static void populateTree() {
-        Map<Character, String> table = Map.ofEntries(
+        Map<Character,String> table = Map.ofEntries(
                 Map.entry('A', ".-"), Map.entry('B', "-..."), Map.entry('C', "-.-."),
                 Map.entry('D', "-.."), Map.entry('E', "."), Map.entry('F', "..-."),
                 Map.entry('G', "--."), Map.entry('H', "...."), Map.entry('I', ".."),
@@ -117,30 +118,37 @@ public class MorseCodeApp extends Application {
                 Map.entry('7', "--..."), Map.entry('8', "---.."), Map.entry('9', "----."),
                 Map.entry('0', "-----")
         );
-        table.forEach(morseTree::insert);
+        table.forEach((ch,code)-> morseTree.insert(ch, code));
     }
 
     public static void main(String[] args) {
         populateTree();
         Scanner scanner = new Scanner(System.in);
-        System.out.print("Enter Morse (letters separated by spaces): ");
-        String input = scanner.nextLine();
-        System.out.println("Decoded word: " + morseTree.decode(input));
+
+        // Decodificação
+        System.out.print("Digite código Morse (símbolos separados por espaço): ");
+        String morseInput = scanner.nextLine();
+        System.out.println("Texto decodificado: " + morseTree.decode(morseInput));
+
+        // Codificação
+        System.out.print("Digite texto para codificar em Morse: ");
+        String textInput = scanner.nextLine();
+        System.out.println("Código Morse: " + morseTree.encode(textInput));
+
         launch(args);
     }
 
+
     @Override
-    public void start(Stage primaryStage) {
-        primaryStage.setTitle("Morse Code BST Visualizer");
-        int height = morseTree.getHeight();
-        double width = Math.pow(2, height) * 20;
-        double canvasHeight = 100 + height * 100;
+    public void start(Stage stage) {
+        stage.setTitle("Visualizador de Árvore BST - Código Morse");
+        int h = morseTree.getHeight();
+        double w = Math.pow(2, h)*20;
+        double ch = 100 + h*100;
 
-        Canvas canvas = new Canvas(width, canvasHeight);
+        Canvas canvas = new Canvas(w, ch);
         morseTree.drawTree(canvas);
-
-        Group root = new Group(canvas);
-        primaryStage.setScene(new Scene(root, width, canvasHeight));
-        primaryStage.show();
+        stage.setScene(new Scene(new Group(canvas), w, ch));
+        stage.show();
     }
 }
