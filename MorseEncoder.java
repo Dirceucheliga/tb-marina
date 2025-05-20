@@ -1,12 +1,14 @@
 public class MorseEncoder {
+    private final MorseBST tree;
+    public MorseEncoder(MorseBST tree) { this.tree = tree; }
+
     public String encode(String text) {
         StringBuilder sb = new StringBuilder();
         for (char c : text.toUpperCase().toCharArray()) {
             if (c == ' ') {
-                sb.append("  "); // separar palavras
+                sb.append("  ");
             } else {
-                String code = MorseData.ENCODE_MAP.getOrDefault(c, "?");
-                sb.append(code).append(' ');
+                sb.append(tree.encodeChar(c)).append(' ');
             }
         }
         return sb.toString().trim();
